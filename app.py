@@ -1,6 +1,6 @@
 import os
 import requests
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 
 app = Flask(__name__)
 app.config['DEBUG'] = True
@@ -11,6 +11,7 @@ SPOONACULAR_BASE_URL = 'https://api.spoonacular.com/recipes'
 
 
 def search_recipes_by_ingredients(ingredients, number=5):
+    """Search recipes on Spoonacular API by ingredients."""
     if not SPOONACULAR_API_KEY or SPOONACULAR_API_KEY == 'YOUR_API_KEY_HERE':
         return {'error': 'API key not configured.'}
 
@@ -33,48 +34,59 @@ def search_recipes_by_ingredients(ingredients, number=5):
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    """Home page: shows recipes based on ingredients query parameter or form submission"""
     recipes = []
     error_message = None
     ingredients_list = []
-    
+
+    #session storage
+    if 'ingredients' not in session:
+        session['ingredients'] = []
+
     if request.method == 'POST':
         ingredients_input = request.form.get('ingredients', '')
+        if ingredients_input:
+            ingredients_list = [ing.strip() for ing in ingredients_input.split(',') if ing.strip()]
+            session['ingredients'] = ingredients_list
+        else:
+            error_message = "Please enter at least one ingredient."
     else:
-        ingredients_input = request.args.get('ingredients', '')
-    
-    if ingredients_input:
-        ingredients_list = [ing.strip() for ing in ingredients_input.split(',') if ing.strip()]
-        if ingredients_list:
-            result = search_recipes_by_ingredients(ingredients_list, number=5)
-            if 'error' in result:
-                error_message = result['error']
-            else:
-                recipes = result if isinstance(result, list) else []
-    
- 
-    favorites = []  
-    random_recipes = []  
-    filter_type = 'all'  
-    shopping_list = []  
-    total_items = 0  
-    done_items = 0  
-    return render_template('index.html', 
-                         recipes=recipes,
-                         error_message=error_message,
-                         ingredients_list=ingredients_list,
-                         favorites=favorites,
-                         random_recipes=random_recipes,
-                         filter_type=filter_type,
-                         shopping_list=shopping_list,
-                         total_items=total_items,
-                         done_items=done_items)
+        ingredients_list = session.get('ingredients', [])
 
+  #search
+    if ingredients_list:
+        result = search_recipes_by_ingredients(ingredients_list, number=5)
+        if 'error' in result:
+            error_message = result['error']
+        else:
+            recipes = result if isinstance(result, list) else []
+
+
+    favorites = []
+    random_recipes = []
+    filter_type = 'all'
+    shopping_list = []
+    total_items = 0
+    done_items = 0
+
+    return render_template(
+        'index.html',
+        recipes=recipes,
+        error_message=error_message,
+        ingredients_list=ingredients_list,
+        favorites=favorites,
+        random_recipes=random_recipes,
+        filter_type=filter_type,
+        shopping_list=shopping_list,
+        total_items=total_items,
+        done_items=done_items
+    )
 
 
 @app.route('/recipe/<int:recipe_id>')
 def recipe_detail(recipe_id):
-    return f"Recipe detail page for recipe ID: {recipe_id} (not implemented yet)"
+    """Temporary route for recipe details."""
+    return f"Recipe detail page for recipe ID: {recipe_id} (coming soon!)"
+
 
 
 @app.route('/add_favorite', methods=['POST'])
@@ -103,4 +115,5 @@ def remove_shopping_item(item_id):
 
 
 if __name__ == '__main__':
+    print("Starting Flask app (v2.1)...")
     app.run(debug=True, host='0.0.0.0', port=5000)

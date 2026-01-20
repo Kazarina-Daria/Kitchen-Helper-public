@@ -11,7 +11,7 @@ SPOONACULAR_BASE_URL = 'https://api.spoonacular.com/recipes'
 
 
 def search_recipes_by_ingredients(ingredients, number=5):
-    """Search recipes on Spoonacular API by ingredients."""
+    """Search recipes from Spoonacular API by list of ingredients."""
     if not SPOONACULAR_API_KEY or SPOONACULAR_API_KEY == 'YOUR_API_KEY_HERE':
         return {'error': 'API key not configured.'}
 
@@ -38,9 +38,11 @@ def index():
     error_message = None
     ingredients_list = []
 
-    #session storage
+
     if 'ingredients' not in session:
         session['ingredients'] = []
+    if 'favorites' not in session:
+        session['favorites'] = []
 
     if request.method == 'POST':
         ingredients_input = request.form.get('ingredients', '')
@@ -52,7 +54,7 @@ def index():
     else:
         ingredients_list = session.get('ingredients', [])
 
-  #search
+
     if ingredients_list:
         result = search_recipes_by_ingredients(ingredients_list, number=5)
         if 'error' in result:
@@ -60,10 +62,9 @@ def index():
         else:
             recipes = result if isinstance(result, list) else []
 
-
-    favorites = []
+    favorites = session.get('favorites', [])
     random_recipes = []
-    filter_type = 'all'
+    filter_type = request.args.get('filter', 'all')
     shopping_list = []
     total_items = 0
     done_items = 0
@@ -82,22 +83,50 @@ def index():
     )
 
 
-@app.route('/recipe/<int:recipe_id>')
-def recipe_detail(recipe_id):
-    """Temporary route for recipe details."""
-    return f"Recipe detail page for recipe ID: {recipe_id} (coming soon!)"
-
-
-
 @app.route('/add_favorite', methods=['POST'])
 def add_favorite():
+    """Add a recipe to favorites."""
+    if 'favorites' not in session:
+        session['favorites'] = []
+
+    recipe_id = request.form.get('recipe_id')
+    recipe_title = request.form.get('recipe_title', 'Untitled Recipe')
+    recipe_image = request.form.get('recipe_image', '')
+
+    if recipe_id:
+
+        existing = [f for f in session['favorites'] if f.get('id') == int(recipe_id)]
+        if not existing:
+            session['favorites'].append({
+                'id': int(recipe_id),
+                'title': recipe_title,
+                'image': recipe_image
+            })
+            session.modified = True
+            print(f"Added to favorites: {recipe_title} (ID: {recipe_id})")
+        else:
+            print(f"Recipe {recipe_id} is already in favorites")
+
     return redirect(request.referrer or url_for('index'))
 
 
 @app.route('/remove_favorite/<int:recipe_id>', methods=['POST'])
 def remove_favorite(recipe_id):
+    """Remove a recipe from favorites."""
+    if 'favorites' in session:
+        before = len(session['favorites'])
+        session['favorites'] = [f for f in session['favorites'] if f.get('id') != recipe_id]
+        after = len(session['favorites'])
+        session.modified = True
+        print(f"Removed from favorites (ID: {recipe_id}), total {before}->{after}")
+
     return redirect(request.referrer or url_for('index'))
 
+
+@app.route('/recipe/<int:recipe_id>')
+def recipe_detail(recipe_id):
+    """Placeholder for recipe detail page."""
+    return f"Recipe detail page for recipe ID: {recipe_id} (coming soon!)"
 
 @app.route('/add_shopping_item', methods=['POST'])
 def add_shopping_item():
@@ -115,5 +144,5 @@ def remove_shopping_item(item_id):
 
 
 if __name__ == '__main__':
-    print("Starting Flask app (v2.1)...")
+    print("Starting Flask app (v2.2) — Favorites added.")
     app.run(debug=True, host='0.0.0.0', port=5000)

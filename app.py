@@ -1,18 +1,18 @@
 import os
 import requests
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 
 app = Flask(__name__)
-app.secret_key = 'mydevkey123' 
+app.secret_key = 'mydevkey123'
 
 SPOONACULAR_API_KEY = 'af307cfbe92e4047b0ef9c205d310b55'
 SPOONACULAR_BASE_URL = 'https://api.spoonacular.com/recipes'
 
 
-def search_recipes_by_ingredients(ingredients, number=5):
-    """Search recipes from Spoonacular API by list of ingredients."""
+def search_recipes_by_ingredients(ingredients, number=8):
+    """Search recipes by ingredients using Spoonacular API."""
     if not SPOONACULAR_API_KEY:
-        return {'error': 'API key not configured.'}
+        return {'error': 'API key missing.'}
 
     ingredients_str = ','.join(ingredients)
     url = f"{SPOONACULAR_BASE_URL}/findByIngredients"
@@ -27,8 +27,25 @@ def search_recipes_by_ingredients(ingredients, number=5):
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
-        print(f"Error calling Spoonacular API: {e}")
-        return {'error': f'Failed to fetch recipes: {str(e)}'}
+        print("Error calling Spoonacular API:", e)
+        return {'error': f'Failed to fetch recipes: {e}'}
+
+
+def get_recipe_information(recipe_id):
+    """Fetch full recipe info by ID."""
+    if not SPOONACULAR_API_KEY:
+        return {'error': 'API key missing.'}
+
+    url = f"{SPOONACULAR_BASE_URL}/{recipe_id}/information"
+    params = {'apiKey': SPOONACULAR_API_KEY}
+
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print("Error fetching recipe info:", e)
+        return {'error': f'Failed to fetch recipe info: {e}'}
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -37,6 +54,7 @@ def index():
     error_message = None
     ingredients_list = []
 
+    # Initialize session data
     for key in ['ingredients', 'favorites', 'shopping_list']:
         if key not in session:
             session[key] = []
@@ -51,9 +69,8 @@ def index():
     else:
         ingredients_list = session.get('ingredients', [])
 
-    # Get from API
     if ingredients_list:
-        result = search_recipes_by_ingredients(ingredients_list, number=5)
+        result = search_recipes_by_ingredients(ingredients_list)
         if 'error' in result:
             error_message = result['error']
         else:
@@ -80,7 +97,6 @@ def index():
 
 @app.route('/add_favorite', methods=['POST'])
 def add_favorite():
-    """Add a recipe to fav."""
     if 'favorites' not in session:
         session['favorites'] = []
 
@@ -89,33 +105,29 @@ def add_favorite():
     recipe_image = request.form.get('recipe_image', '')
 
     if recipe_id:
-        exists = any(f.get('id') == int(recipe_id) for f in session['favorites'])
-        if not exists:
+        if not any(f.get('id') == int(recipe_id) for f in session['favorites']):
             session['favorites'].append({
                 'id': int(recipe_id),
                 'title': recipe_title,
                 'image': recipe_image
             })
             session.modified = True
-            print(f"Added to favorites: {recipe_title} (ID: {recipe_id})")
+            print(f"Added to favorites: {recipe_title}")
 
     return redirect(request.referrer or url_for('index'))
 
 
 @app.route('/remove_favorite/<int:recipe_id>', methods=['POST'])
 def remove_favorite(recipe_id):
-    """Remove a recipe from fav."""
     if 'favorites' in session:
         session['favorites'] = [f for f in session['favorites'] if f.get('id') != recipe_id]
         session.modified = True
-        print(f"Removed from favorites (ID: {recipe_id})")
-
+        print(f"Removed favorite ID: {recipe_id}")
     return redirect(request.referrer or url_for('index'))
 
 
 @app.route('/add_shopping_item', methods=['POST'])
 def add_shopping_item():
-    """Add new item to shopping list."""
     if 'shopping_list' not in session:
         session['shopping_list'] = []
 
@@ -131,41 +143,52 @@ def add_shopping_item():
         }
         session['shopping_list'].append(new_item)
         session.modified = True
-        print(f"Added to shopping list: {item_name} ({item_quantity})")
-
+        print(f"Added shopping item: {item_name}")
     return redirect(request.referrer or url_for('index'))
 
 
 @app.route('/toggle_shopping_item/<int:item_id>', methods=['POST'])
 def toggle_shopping_item(item_id):
-    """Toggle checked/unchecked status"""
     if 'shopping_list' in session:
         for item in session['shopping_list']:
             if item.get('id') == item_id:
                 item['checked'] = not item.get('checked', False)
-                print(f"Toggled shopping item {item['name']} → {item['checked']}")
                 break
         session.modified = True
-
     return redirect(request.referrer or url_for('index'))
 
 
 @app.route('/remove_shopping_item/<int:item_id>', methods=['POST'])
 def remove_shopping_item(item_id):
-    """Remove item from shopping list."""
     if 'shopping_list' in session:
         session['shopping_list'] = [i for i in session['shopping_list'] if i.get('id') != item_id]
         session.modified = True
-        print(f"Removed shopping item ID {item_id}")
-
     return redirect(request.referrer or url_for('index'))
 
 
 @app.route('/recipe/<int:recipe_id>')
 def recipe_detail(recipe_id):
-    """Simple placeholder for recipe detail page."""
-    return f"Recipe detail page for recipe ID: {recipe_id} (coming soon)"
+    data = get_recipe_information(recipe_id)
+    if 'error' in data:
+        return render_template('error.html', message=data['error']), 500
+    return render_template('recipe_detail.html', recipe=data)
+
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
+
+@app.route('/contact', methods=['GET', 'POST'])
+def contact():
+    if request.method == 'POST':
+        name = request.form.get('name')
+        email = request.form.get('email')
+        message = request.form.get('message')
+        print(f"Message from {name} ({email}): {message}")
+        return render_template('contact.html', success=True)
+    return render_template('contact.html', success=False)
 
 
 if __name__ == '__main__':
+    print("Starting Flask app (v2.4 — recipe details + pages)")
     app.run(debug=True, host='0.0.0.0', port=5000)

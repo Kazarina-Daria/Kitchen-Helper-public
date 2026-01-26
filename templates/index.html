@@ -104,13 +104,27 @@
                         <a href="{{ url_for('index', filter='favorites') }}" 
                            class="filter-button {% if filter_type == 'favorites' %}active{% endif %}" 
                            style="text-decoration: none; display: inline-block;">Favorites</a>
-                        <button class="new-recipe-button">+ New recipe</button>
+                        <button class="new-recipe-button" type="button" onclick="document.getElementById('new-recipe-form').style.display='block'; this.style.display='none';">+ New recipe</button>
                     </div>
                 </div>
 
+                <form id="new-recipe-form" method="POST" action="{{ url_for('add_custom_recipe') }}" style="display: none; margin-bottom: 20px; padding: 15px; background: var(--color-background); border-radius: 8px; border: 1px solid var(--color-border);">
+                    <div style="display: grid; gap: 10px; grid-template-columns: 1fr 1fr;">
+                        <input type="text" name="title" placeholder="Recipe title" required style="width: 100%; padding: 8px; border: 1px solid var(--color-border); border-radius: 4px;">
+                        <input type="text" name="image" placeholder="Image URL (optional)" style="width: 100%; padding: 8px; border: 1px solid var(--color-border); border-radius: 4px;">
+                        <input type="number" name="ready_in_minutes" min="1" placeholder="Ready in minutes (optional)" style="width: 100%; padding: 8px; border: 1px solid var(--color-border); border-radius: 4px;">
+                        <input type="number" name="servings" min="1" placeholder="Servings (optional)" style="width: 100%; padding: 8px; border: 1px solid var(--color-border); border-radius: 4px;">
+                    </div>
+                    <textarea name="description" rows="3" placeholder="Short description (optional)" style="width: 100%; margin-top: 10px; padding: 8px; border: 1px solid var(--color-border); border-radius: 4px;"></textarea>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button type="submit" class="cook-button" style="flex: 1;">Add recipe</button>
+                        <button type="button" onclick="document.getElementById('new-recipe-form').style.display='none'; document.querySelector('.new-recipe-button').style.display='inline-block';" style="flex: 1; padding: 8px; background: var(--color-text-light); color: white; border: none; border-radius: 4px; cursor: pointer;">Cancel</button>
+                    </div>
+                </form>
+
                 <div class="recipe-cards-grid">
-                    {% if recipes %}
-                        {% for recipe in recipes %}
+                    {% if display_recipes %}
+                        {% for recipe in display_recipes %}
                         <article class="recipe-card">
                             {% if recipe.image %}
                             <img src="{{ recipe.image }}" alt="{{ recipe.title }}" class="recipe-image" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'200\'%3E%3Crect fill=\'%23ddd\' width=\'300\' height=\'200\'/%3E%3Ctext fill=\'%23999\' font-family=\'sans-serif\' font-size=\'14\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\'%3ENo Image%3C/text%3E%3C/svg%3E';">
@@ -137,25 +151,42 @@
                                         • {{ recipe.likes }} likes
                                     {% endif %}
                                 </p>
+                                {% if recipe.description %}
+                                    <p class="recipe-meta">{{ recipe.description }}</p>
+                                {% endif %}
                                 <div class="recipe-actions">
-                                    <span class="tag {% if recipe.missedIngredientCount is defined and recipe.missedIngredientCount == 0 %}healthy-tag{% else %}protein-tag{% endif %}">
-                                        {% if recipe.missedIngredientCount is defined and recipe.missedIngredientCount == 0 %}Ready{% else %}Recipe{% endif %}
-                                    </span>
-                                    <div style="display: flex; gap: 10px; align-items: center;">
-                                        {% set is_fav = favorites|selectattr('id', 'equalto', recipe.id)|list|length > 0 %}
-                                        <form method="POST" action="{% if is_fav %}{{ url_for('remove_favorite', recipe_id=recipe.id) }}{% else %}{{ url_for('add_favorite') }}{% endif %}" style="margin: 0; display: inline;">
-                                            <input type="hidden" name="recipe_id" value="{{ recipe.id }}">
-                                            <input type="hidden" name="recipe_title" value="{{ recipe.title }}">
-                                            <input type="hidden" name="recipe_image" value="{{ recipe.image or '' }}">
-                                            <input type="hidden" name="return_url" value="{{ request.url }}">
-                                            <button type="submit" 
-                                                    style="background: none; border: none; font-size: 20px; cursor: pointer; padding: 0;"
-                                                    title="{% if is_fav %}Remove from favorites{% else %}Add to favorites{% endif %}">
-                                                {% if is_fav %}❤️{% else %}🤍{% endif %}
-                                            </button>
-                                        </form>
-                                        <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="view-recipe-button" style="text-decoration: none; display: inline-block;">View recipe</a>
-                                    </div>
+                                    {% if recipe.is_custom %}
+                                        <span class="tag protein-tag">Custom</span>
+                                        <div style="display: flex; gap: 10px; align-items: center;">
+                                            <form method="POST" action="{{ url_for('remove_custom_recipe', recipe_id=recipe.id) }}" style="margin: 0; display: inline;">
+                                                <input type="hidden" name="return_url" value="{{ request.url }}">
+                                                <button type="submit"
+                                                        style="background: none; border: none; font-size: 16px; cursor: pointer; padding: 0; color: var(--color-text-light);"
+                                                        title="Remove custom recipe">
+                                                    🗑️ Remove
+                                                </button>
+                                            </form>
+                                        </div>
+                                    {% else %}
+                                        <span class="tag {% if recipe.missedIngredientCount is defined and recipe.missedIngredientCount == 0 %}healthy-tag{% else %}protein-tag{% endif %}">
+                                            {% if recipe.missedIngredientCount is defined and recipe.missedIngredientCount == 0 %}Ready{% else %}Recipe{% endif %}
+                                        </span>
+                                        <div style="display: flex; gap: 10px; align-items: center;">
+                                            {% set is_fav = favorites|selectattr('id', 'equalto', recipe.id)|list|length > 0 %}
+                                            <form method="POST" action="{% if is_fav %}{{ url_for('remove_favorite', recipe_id=recipe.id) }}{% else %}{{ url_for('add_favorite') }}{% endif %}" style="margin: 0; display: inline;">
+                                                <input type="hidden" name="recipe_id" value="{{ recipe.id }}">
+                                                <input type="hidden" name="recipe_title" value="{{ recipe.title }}">
+                                                <input type="hidden" name="recipe_image" value="{{ recipe.image or '' }}">
+                                                <input type="hidden" name="return_url" value="{{ request.url }}">
+                                                <button type="submit" 
+                                                        style="background: none; border: none; font-size: 20px; cursor: pointer; padding: 0;"
+                                                        title="{% if is_fav %}Remove from favorites{% else %}Add to favorites{% endif %}">
+                                                    {% if is_fav %}❤️{% else %}🤍{% endif %}
+                                                </button>
+                                            </form>
+                                            <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="view-recipe-button" style="text-decoration: none; display: inline-block;">View recipe</a>
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </article>
@@ -208,8 +239,13 @@
                         {% endfor %}
                     {% else %}
                         <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--color-text-light);">
-                            <p style="font-size: 18px; margin-bottom: 10px;">No recipes found yet</p>
-                            <p>Enter ingredients in the left sidebar and search for recipes!</p>
+                            {% if filter_type == 'favorites' %}
+                                <p style="font-size: 18px; margin-bottom: 10px;">No favorite recipes yet</p>
+                                <p>Tap the heart on a recipe to save it here.</p>
+                            {% else %}
+                                <p style="font-size: 18px; margin-bottom: 10px;">No recipes found yet</p>
+                                <p>Enter ingredients in the left sidebar and search for recipes!</p>
+                            {% endif %}
                         </div>
                     {% endif %}
                 </div>

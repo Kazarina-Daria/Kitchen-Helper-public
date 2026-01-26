@@ -144,7 +144,7 @@ body {
 }
 
 .recipe-suggestion-card {
-    background-color: var(--color-background); /* Slightly different background */
+    background-color: var(--color-background); 
     border-radius: 6px;
     padding: 15px;
     margin-bottom: 10px;
@@ -331,7 +331,6 @@ body {
 }
 
 .shopping-item input[type="checkbox"] {
-    /* Custom checkbox styling can be complex, using standard for simplicity */
     margin-right: 10px;
 }
 

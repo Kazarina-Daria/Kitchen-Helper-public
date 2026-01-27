@@ -18,7 +18,7 @@ Eine Webanwendung mit **Flask**, die es ermöglicht, Rezepte anhand von Zutaten 
 ### ⚙️ Installation und Ausführung
 - Repository klonen
 bash
-git clone https://github.com/<dein_link_oder_repo>.git
+git clone https://github.com/link.git
 cd <projektordner>
 Anwendung starten
 

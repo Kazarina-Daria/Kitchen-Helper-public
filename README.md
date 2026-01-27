@@ -1,13 +1,49 @@
-# Kitchen Helper
+# 🥘 Rezeptfinder Web App
 
-A Flask web application that helps you find recipes based on ingredients you have available, powered by the [Spoonacular Food API](https://spoonacular.com/food-api).
+Eine Webanwendung mit **Flask**, die es ermöglicht, Rezepte anhand von Zutaten über die **Spoonacular API** zu suchen, Favoriten zu speichern und eine Einkaufsliste zu verwalten.
 
+---
+
+## 📌 Funktionen
+
+- 🔍 Suche von Rezepten
+- ⭐ Hinzufügen von Rezepten zu den Favoriten  
+- 🛒 Einkaufsliste mit Markierung erledigter Einträge  
+- 🧑‍🍳 Eigene Rezepte manuell hinzufügen  
+- 📄 Detailansicht einzelner Rezepte  
+- 🎥 Kurze Videodemonstration des Programms (siehe unten)
+
+---
+
+### ⚙️ Installation und Ausführung
+- Repository klonen
+bash
+git clone https://github.com/<dein_link_oder_repo>.git
+cd <projektordner>
+Anwendung starten
+
+-Abhängigkeiten installieren
+
+-Im Projektordner folgenden Befehl ausführen:
+
+python app.py
+
+--------
 ### Backend Routes
 
-- `GET /` - Home page with recipe search
-- `POST /` - Search recipes by ingredients (form submission)
-- `GET /about` - About page
-- `GET /contact` - Contact form page
-- `POST /contact` - Submit contact form
-- `GET /recipe/<recipe_id>` - View detailed recipe information
-- `POST /api/search` - JSON API endpoint for searching recipes
+GET / – Renders the home page with the recipe search interface.
+
+POST / – Handles recipe searches by ingredients via form submission.
+
+GET /about – Displays the "About Us" information page.
+
+GET /contact – Renders the contact form page.
+
+POST /contact – Processes and submits the contact form data.
+
+GET /recipe/<recipe_id> – Displays detailed information for a specific recipe.
+
+POST /api/search – API endpoint that returns recipe search results in JSON format.
+
+https://github.com/user-attachments/assets/45d45c47-995a-4eb3-a3a0-510512ac527e
+

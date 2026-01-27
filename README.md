@@ -28,22 +28,3 @@ Anwendung starten
 
 python app.py
 
---------
-### Backend Routes
-
-GET / – Renders the home page with the recipe search interface.
-
-POST / – Handles recipe searches by ingredients via form submission.
-
-GET /about – Displays the "About Us" information page.
-
-GET /contact – Renders the contact form page.
-
-POST /contact – Processes and submits the contact form data.
-
-GET /recipe/<recipe_id> – Displays detailed information for a specific recipe.
-
-POST /api/search – API endpoint that returns recipe search results in JSON format.
-
-https://github.com/user-attachments/assets/45d45c47-995a-4eb3-a3a0-510512ac527e
-

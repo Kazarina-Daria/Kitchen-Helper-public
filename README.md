@@ -28,3 +28,7 @@ Anwendung starten
 
 python app.py
 
+
+
+https://github.com/user-attachments/assets/feb15bba-b9fb-4477-8500-fdb1cd94a162
+
